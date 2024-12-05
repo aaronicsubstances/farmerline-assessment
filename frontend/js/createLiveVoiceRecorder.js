@@ -1,13 +1,11 @@
-import { easeOutExpo } from "./utils.js"
-
 /**
  * Job of this function is to create an object
  * which wraps a microphone available to a web browser,
  * to emit chunks of recording periodically based on
  * detected speech pauses.
  */
-export const createLiveVoiceRecorder = (
-    audioCtx, micStream, preferredMimeType, minDecibels, abortSignal, chunkListenerCb) => {
+const createLiveVoiceRecorder = (
+    audioCtx, micStream, preferredMimeType, minDecibels, chunkListenerCb) => {
 
     // will have at most one item.
     // used to transfer speech pause detection info
@@ -89,7 +87,7 @@ export const createLiveVoiceRecorder = (
     };
 
     speechPauseDetector = createSpeechPauseDetector(
-        audioCtx, micStream, minDecibels, abortSignal, onSpeechChange);
+        audioCtx, micStream, minDecibels, onSpeechChange);
 
     return {
         restart,
@@ -98,7 +96,7 @@ export const createLiveVoiceRecorder = (
 };
 
 // from https://stackoverflow.com/questions/46543341/how-can-i-extract-the-preceding-audio-from-microphone-as-a-buffer-when-silence/46781986#46781986
-const createSpeechPauseDetector = (audioCtx, stream, minDecibels, abortSignal, callback) => {
+const createSpeechPauseDetector = (audioCtx, stream, minDecibels, callback) => {
     const fftSize = 8192; //  from https://github.com/hvianna/audioMotion-analyzer?tab=readme-ov-file#fftsize-number
     const maxWaitMillisForSilence = 15000;
     const minChangeDetectMillis = 500;
@@ -112,7 +110,7 @@ const createSpeechPauseDetector = (audioCtx, stream, minDecibels, abortSignal, c
 
     const audioFreqData = new Uint8Array(analyzer.frequencyBinCount);
 
-    let paused = false;
+    let stopped = false;
     let someoneIsSpeaking = false;
     let lastSoundTime, lastNonSoundTime;
     let beginSpeechChangeTime = 0;
@@ -120,32 +118,34 @@ const createSpeechPauseDetector = (audioCtx, stream, minDecibels, abortSignal, c
     let scheduledLoopJob;
 
     const restart = () => {
-        paused = false;
+        if (stopped) {
+            throw new Error("Live voice recorder instance has been stopped");
+        }
         someoneIsSpeaking = false;
         lastSoundTime = 0;
         lastNonSoundTime = 0;
         beginSpeechChangeTime = performance.now();
-        loop();
+        scheduledLoopJob = setInterval(loop, minChangeDetectMillis);
     };
 
     const pause = () => {
-        paused = true;
-        clearTimeout(scheduledLoopJob)
+        clearInterval(scheduledLoopJob)
     };
 
     const stop = () => {
-        pause()
+        if (stopped) {
+            return;
+        }
+        stopped = true;
+        clearInterval(scheduledLoopJob)
         streamNode.disconnect(analyzer);
-        callback = null;
+    };
+
+    const easeOutExpo = (x) => {
+        return x === 1 ? 1 : 1 - Math.pow(2, -10 * x);
     };
 
     const loop = () => {
-        if (paused || !callback || abortSignal.aborted) {
-            return;
-        }
-
-        scheduledLoopJob = setTimeout(loop, 1000);
-
         const currentTime = performance.now();
         let invokeCallback = false, forceInvokeCallback = false;
 

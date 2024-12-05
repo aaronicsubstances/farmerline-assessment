@@ -1,4 +1,141 @@
+body {
+  background: url(../images/bg-do-not-preserve-aspect-ratio.svg);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+.border-top {
+  border-top: 1px solid #e5e5e5;
+}
+
+.border-bottom {
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.box-shadow {
+  box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .05);
+}
+
+.error {
+  color: red
+}
+
+#no-recording {
+  /* to be overridden on md screens */
+  margin-top: 2.5rem;
+}
+
+/* Medium devices (tablets, 768px and up) */
+@media (min-width: 768px) {
+  #no-recording {
+    margin-top: -10rem;
+  }
+}
+
+#recording-in-progress {
+  /* to be overriden on xl screens */
+  align-items: center;
+}
+
+#control-panel {
+  /* to be overriden on xl screens */
+  flex-grow: 0;
+  text-align: center;
+}
+
 #spectrum {
-  width: 45rem;
-  height: 7rem;
+  /* to be overriden on md and xl screens */
+  width: 300px;
+  height: 50px;
+  margin-top: 5rem;
+
+  /* common across screens */
+  background-repeat: no-repeat;
+  background-image: url(../images/audio-wave.svg)
+}
+
+#stop {
+  /* to be overriden on xl screens */
+  margin-top: 2rem;
+}
+
+#transcriptions {
+  /* to be overriden on xl screens */
+  margin-top: 5rem;
+
+  /* to be overriden on md and xl screens */
+  width: 90%;
+
+  /* common across screens */
+  max-width: 25rem;
+  background-color: white;
+  padding: 1rem 1rem 0;
+  border-radius: 0.5rem;
+  border: 1px solid #e7e7e7;
+  overflow: auto;
+}
+
+/* Medium devices (tablets, 768px and up) */
+@media (min-width: 768px) {
+  #spectrum {
+    width: 720px;
+    height: 120px;
+  }
+  #transcriptions {
+    width: 25rem;
+  }
+}
+
+/* X-Large devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) {
+  #recording-in-progress {
+    /* to be overriden on xl screens */
+    align-items: stretch;
+  }
+  
+  #control-panel {
+    flex-grow: 1;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #spectrum {
+    margin-top: 5rem;
+  }
+
+  #stop {
+    margin-top: 15rem;
+  }
+
+  #transcriptions {
+    margin-top: 1rem;
+    margin-right: 1rem;
+    width: 25rem;
+    height: calc(100vh - 10em);
+  }
+}
+
+.transcript {
+  padding: 1rem 0.5rem;
+  border: 1px solid #e7e7e7;
+  margin: 1rem 0;
+  border-radius: 0.5rem;
+  overflow: auto;
+}
+
+.transcript .date {
+  text-align: right;
+  font-size: 0.75rem;
+  color: #616161;
+}
+
+.transcript .text {
+  font-size: 0.875rem;
+}
+
+.transcript .recording {
+  overflow-x: auto;
 }

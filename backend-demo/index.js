@@ -57,13 +57,23 @@ app.post('/api/speechToText', async (req, res, next) => {
 })
 
 app.use(function (err, req, res, next) {
-    if (err.response) {
-        console.log("Superagent error response:", 
-            err.reponse.status, "::",
-            err.response.text)
-    }
     console.error(err.stack);
-    res.status(500).send('Something went wrong!');
+    res.status(500);
+    if (err.response) {
+        console.log("Superagent http error response ", 
+            err.response.status, ":",
+            err.response.text)
+        if (err.response.text) {
+            res.json(err.response.body)
+            return;
+        }
+    }
+    res.json({
+        'error': {
+            'message': 'Something went wrong during server processing. Contact the site administrator for assistance'
+        }
+    });
+    return;
 });
 
 app.listen(port, () => {

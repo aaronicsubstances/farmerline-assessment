@@ -7,33 +7,53 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Example: Audio Visualization and Transcription</title>
   <!-- You may want to add other icon formats and sizes, but have this at the least: -->
-  <!--<link rel="shortcut icon" href="favicon.ico">-->
+  <link rel="shortcut icon" href="favicon.ico">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
   <link rel="stylesheet" href="css/base.css">
 </head>
 
-<body>
-  <noscript>
-    <!-- Optional, place it wherever it makes sense -->
-    JavaScript is not enabled.
-  </noscript>
-  <!--<div class="vh-100">-->
-  <div>
-    <div id="recording" class="d-flex flex-column align-items-center justify-content-center h-100">
-      <h1 class="mb-5">Welcome to Darli</h1>
-
-      <div>
-        <button id="start" type="button" class="btn btn-dark text-nowrap">Start</button>
-        <button id="stop" type="button" class="btn btn-dark text-nowrap">Stop</button>
-      </div>
-      <p id="resumeState"></p>
-    </div>
-    <div id="transcription" class="mx-5">
-      <div id="spectrum" class="mb-2"></div>
-      <div id="recordings"></div>
-    </div>
+<body class="min-vh-100 d-flex flex-column">
+  <div class="d-flex flex-column flex-md-row align-items-center p-3 px-md-4 bg-white border-bottom box-shadow">
+    <h5 class="my-0 me-md-auto font-weight-normal">Company name</h5>
+    <nav class="my-2 my-md-0 mr-md-3">
+      <a class="p-2 text-dark" href="#">Features</a>
+      <a class="p-2 text-dark" href="#">Enterprise</a>
+      <a class="p-2 text-dark" href="#">Support</a>
+      <a class="p-2 text-dark" href="#">Pricing</a>
+    </nav>
+    <a class="btn btn-outline-primary" href="#">Sign up</a>
   </div>
+  <main class="flex-grow-1 d-flex p-3">
+    <div id="no-recording" class="flex-grow-1 d-flex flex-column align-items-center justify-content-md-center gap-3">
+
+      <h1>Welcome to Darli</h1>
+      <button id="start" class="btn btn-dark">Start Transcription</button>
+
+    </div>
+
+    <div id="recording-in-progress" class="d-none flex-grow-1 d-flex flex-column flex-xl-row gap-3">
+
+      <div id="control-panel">
+        <div id="spectrum"></div>
+        <button id="stop" class="btn btn-dark">Stop Transcription</button>
+      </div>
+
+      <div id="transcriptions">
+        <h3>Transcript</h3>
+        <div class="transcript">
+          <p class="date">Sep 30 2024 10:24 pm</p>
+          <p class="text">The book you want is called rich dad and poor dad and I want to buy it.</p>
+          <div class="recording"></div>
+        </div>
+        <div class="transcript">
+          <p class="date">Sep 30 2024 10:24 pm</p>
+          <p class="text">The book you want is called rich dad and poor dad and I want to buy it.</p>
+          <div class="recording"></div>
+        </div>
+
+      </div>
+  </main>
   <script src="https://code.jquery.com/jquery-3.7.1.slim.min.js"
     integrity="sha256-kmHvs0B+OpCW5GVHUNjv9rOmY0IvSIRcf7zGUDTDQM8=" crossorigin="anonymous"></script>
 
@@ -41,7 +61,10 @@
     integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
     crossorigin="anonymous"></script>
 
-  <script type="module" src="js/mic-example.js"></script>
+  <script src="https://unpkg.com/audiomotion-analyzer/dist"></script>
+
+  <script src="js/createLiveVoiceRecorder.js"></script>
+  <script src="js/app.js"></script>
 </body>
 
 </html>
