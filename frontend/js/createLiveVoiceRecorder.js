@@ -117,6 +117,8 @@ const createSpeechPauseDetector = (audioCtx, stream, minDecibels, abortSignal, c
     let lastSoundTime, lastNonSoundTime;
     let beginSpeechChangeTime = 0;
 
+    let scheduledLoopJob;
+
     const restart = () => {
         paused = false;
         someoneIsSpeaking = false;
@@ -128,12 +130,13 @@ const createSpeechPauseDetector = (audioCtx, stream, minDecibels, abortSignal, c
 
     const pause = () => {
         paused = true;
+        clearTimeout(scheduledLoopJob)
     };
 
     const stop = () => {
-        paused = false;
-        callback = null;
+        pause()
         streamNode.disconnect(analyzer);
+        callback = null;
     };
 
     const loop = () => {
@@ -141,8 +144,7 @@ const createSpeechPauseDetector = (audioCtx, stream, minDecibels, abortSignal, c
             return;
         }
 
-        // we'll loop every 60th of a second to check
-        requestAnimationFrame(loop);
+        scheduledLoopJob = setTimeout(loop, 1000);
 
         const currentTime = performance.now();
         let invokeCallback = false, forceInvokeCallback = false;
@@ -150,7 +152,7 @@ const createSpeechPauseDetector = (audioCtx, stream, minDecibels, abortSignal, c
         analyzer.getByteFrequencyData(audioFreqData);
 
         const soundDetected = audioFreqData.some(v => v) // if there is data above the given db limit
- 
+
         if (soundDetected) {
             if (!someoneIsSpeaking && (currentTime - lastNonSoundTime) > minChangeDetectMillis) {
                 someoneIsSpeaking = true;
@@ -174,15 +176,15 @@ const createSpeechPauseDetector = (audioCtx, stream, minDecibels, abortSignal, c
             }
             lastNonSoundTime = currentTime;
         }
-        
-        // regardless of whether we are going to invoke callback, determine whether
-        // max period without change in speaking or silence has been exceeded.
-        const maxNonChangeDuration = someoneIsSpeaking ?
-            maxWaitMillisForSilence :
-            maxSilenceDelayMillis;
-        if ((currentTime - beginSpeechChangeTime) > maxNonChangeDuration) {
-            invokeCallback = true;
-            forceInvokeCallback = true;
+
+        if (!invokeCallback) {
+            const maxNonChangeDuration = someoneIsSpeaking ?
+                maxWaitMillisForSilence :
+                maxSilenceDelayMillis;
+            if ((currentTime - beginSpeechChangeTime) > maxNonChangeDuration) {
+                invokeCallback = true;
+                forceInvokeCallback = true;
+            }
         }
 
         if (invokeCallback) {
