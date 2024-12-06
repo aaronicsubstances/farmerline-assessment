@@ -228,7 +228,7 @@ $(function () {
     function transcribeAudioBlob(blob) {
         return blobToBase64Async(blob, true)
             .then(base64data => {
-                return fetch("http://localhost:3000/api/speechToText", {
+                return fetch("http://localhost:8001/api/speechToText", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
