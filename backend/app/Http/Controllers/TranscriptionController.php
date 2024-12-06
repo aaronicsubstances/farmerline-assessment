@@ -43,6 +43,7 @@ class TranscriptionController extends Controller
         if (!$conversationOwner) {
             $conversationOwner = '';
         }
+        $discardEmptyTranscription = $request->discardEmptyTranscription;
 
         [$buffer, $mimeType] = self::base64ToBufferAndContentType($audio);
         $ext = explode("/", $mimeType)[1];
@@ -60,15 +61,18 @@ class TranscriptionController extends Controller
         ]);
 
         if ($response->ok()) {
-            // save to database
-            $dbRecord = new Transcriptions;
-            $dbRecord->conversation_owner = $conversationOwner;
-            $dbRecord->conversation_id = $conversationId;
-            $dbRecord->transcription = $response->json('text');
-            $dbRecord->audio_data = $buffer;
-            $dbRecord->file_ext = $ext;
-            $dbRecord->media_type = $mimeType;
-            $dbRecord->save();
+            $apiResText = $response->json('text');
+            if (!$discardEmptyTranscription || $apiResText) {
+                // save to database
+                $dbRecord = new Transcriptions;
+                $dbRecord->conversation_owner = $conversationOwner;
+                $dbRecord->conversation_id = $conversationId;
+                $dbRecord->transcription = $apiResText;
+                $dbRecord->audio_data = $buffer;
+                $dbRecord->file_ext = $ext;
+                $dbRecord->media_type = $mimeType;
+                $dbRecord->save();
+            }
         }
 
         if ($response->json()) {

@@ -20,7 +20,8 @@ $(function () {
                     body: JSON.stringify({
                         audio: base64data,
                         conversationId: conversationId,
-                        conversationOwner: conversationOwner
+                        conversationOwner: conversationOwner,
+                        discardEmptyTranscription: discardEmptyTranscription
                     }),
                 });
             })
