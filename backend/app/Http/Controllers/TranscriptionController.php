@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+
+use App\Models\Transcriptions;
 
 class TranscriptionController extends Controller
 {
@@ -26,8 +29,20 @@ class TranscriptionController extends Controller
         return [$raw, $mimeType];
     }
 
+    public function generateConversationId() {
+        $conversationId = (string) Str::uuid();
+        return response()->json([
+            'text'=> $conversationId
+        ]);
+    }
+
     public function speechToText(Request $request) {
         $audio = $request->audio;
+        $conversationId = $request->conversationId;
+        $conversationOwner = $request->conversationOwner;
+        if (!$conversationOwner) {
+            $conversationOwner = '';
+        }
 
         [$buffer, $mimeType] = self::base64ToBufferAndContentType($audio);
         $ext = explode("/", $mimeType)[1];
@@ -43,6 +58,18 @@ class TranscriptionController extends Controller
             'model' => 'whisper-1',
             'language' => 'en',
         ]);
+
+        if ($response->ok()) {
+            // save to database
+            $dbRecord = new Transcriptions;
+            $dbRecord->conversation_owner = $conversationOwner;
+            $dbRecord->conversation_id = $conversationId;
+            $dbRecord->transcription = $response->json('text');
+            $dbRecord->audio_data = $buffer;
+            $dbRecord->file_ext = $ext;
+            $dbRecord->media_type = $mimeType;
+            $dbRecord->save();
+        }
 
         if ($response->json()) {
             return response()->json($response->json(),

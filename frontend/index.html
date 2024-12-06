@@ -22,11 +22,11 @@
         <img src="images/person-circle.svg" alt="" width="32" height="32">
       </a>
       <ul class="dropdown-menu">
-        <li><a class="dropdown-item" href="#">Profile</a></li>
+        <li><a id="profileLink" class="dropdown-item" href="#">Profile</a></li>
         <li>
           <hr class="dropdown-divider">
         </li>
-        <li><a class="dropdown-item" href="#">Sign out</a></li>
+        <li><a id="signOutLink" class="dropdown-item" href="#">Sign out</a></li>
       </ul>
     </div>
   </div>
@@ -41,7 +41,10 @@
       <!--<button id="start" class="btn btn-dark">Start Transcription</button>-->
 
       <div class="btn-group">
-        <button id="start" type="button" class="btn btn-dark">Start Transcription</button>
+        <button id="start" type="button" class="btn btn-dark">
+          <span class="loading"></span>
+          Start Transcription
+        </button>
         <button type="button" class="btn btn-dark dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"
           aria-expanded="false">
           <span class="visually-hidden">Toggle Dropdown</span>
@@ -76,6 +79,10 @@
             <label class="form-check-label" for="discard-failed-transcription">
               Do not keep failed transcriptions
             </label>
+          </div>
+          <div class="mt-3">
+            <label for="conversation-owner" class="form-label">Name which can be used to identify user</label>
+            <input id="conversation-owner" class="form-control" type="text" maxlength="50">
           </div>
         </div>
       </div>
@@ -119,6 +126,7 @@
 
   <script src="https://unpkg.com/audiomotion-analyzer/dist"></script>
 
+  <script src="js/env.js"></script>
   <script src="js/createLiveVoiceRecorder.js"></script>
   <script src="js/app.js"></script>
 </body>

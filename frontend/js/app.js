@@ -1,11 +1,46 @@
 $(function () {
-    const MAX_TRANSCRIPTIONS_TO_KEEP = 100
-
     let startRecordingResult;
+    let conversationId;
+    let conversationOwner;
     let hashChangeApproved;
     let enableRecordReplay;
     let discardEmptyTranscription;
     let discardFailedTranscription;
+
+    const MAX_TRANSCRIPTIONS_TO_KEEP = 100;
+
+    function transcribeAudioBlob(blob) {
+        return blobToBase64Async(blob, true)
+            .then(base64data => {
+                return fetch(`${window.API_BASE_URL}/api/speechToText`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        audio: base64data,
+                        conversationId: conversationId,
+                        conversationOwner: conversationOwner
+                    }),
+                });
+            })
+            .then(response => response.json())
+            .then(response => {
+                if (!response.error) {
+                    return response.text
+                }
+                throw new Error("Error response from server: " +
+                    response.error.message);
+            });
+    }
+
+    function generateConversationId() {
+        return fetch(`${window.API_BASE_URL}/api/generateUuid`, {
+            method: "POST"
+        })
+        .then(response => response.json())
+        .then(response => response.text);
+    }
 
     function grabMicrophoneAsync() {
         if (!navigator.mediaDevices?.getUserMedia) {
@@ -24,7 +59,14 @@ $(function () {
     }
 
     function startRecordingAsync(waveAnimationCanvasParent, chunkListener) {
-        return grabMicrophoneAsync()
+        if (!window.API_BASE_URL) {
+            return Promise.reject(new Error("Server endpoint is missing"));
+        }
+        return generateConversationId()
+            .then(res => {
+                conversationId = res
+            })
+            .then(() => grabMicrophoneAsync())
             .then(mic => {
                 const { micStream, preferredMimeType } = mic;
 
@@ -191,7 +233,7 @@ $(function () {
                         }
                     }
                     else {
-                        $(".text", transriptionOutputEl).addClass("empty").text("(empty)")
+                        $(".text", transriptionOutputEl).addClass("empty-text").text("(empty)")
                     }
                 }
             }).finally(() => {
@@ -268,29 +310,6 @@ $(function () {
         })
     }
 
-    function transcribeAudioBlob(blob) {
-        return blobToBase64Async(blob, true)
-            .then(base64data => {
-                return fetch("http://localhost:8001/api/speechToText", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        audio: base64data
-                    }),
-                });
-            })
-            .then(response => response.json())
-            .then(response => {
-                if (!response.error) {
-                    return response.text
-                }
-                throw new Error("Error response from server: " +
-                    response.error.message);
-            });
-    }
-
     function escapeHtml(unsafe) {
         return unsafe
             .replace(/&/g, "&amp;")
@@ -342,14 +361,20 @@ $(function () {
         hashChangeApproved = false;
     };
 
+    $("#profileLink, #signOutLink").click(function(e) {
+        e.preventDefault();
+    });
+
     $("#start").click(function () {
         $("#start").attr('disabled', 'disabled');
+        $(".loading", $("#start")).html(`<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>`)
         $('.transcript').remove()
         $("#flash-messages").text('')
 
         enableRecordReplay = $("#enable-record-replay").is(":checked")
         discardEmptyTranscription = $("#discard-empty-transcription").is(":checked")
         discardFailedTranscription = $("#discard-failed-transcription").is(":checked")
+        conversationOwner = $("#conversation-owner").val().trim();
 
         startRecordingAsync($('#spectrum')[0], audioBlobReceiver)
             .then(res => {
@@ -366,6 +391,7 @@ $(function () {
             })
             .finally(() => {
                 $("#start").removeAttr('disabled');
+                $(".loading", $("#start")).text('')
             })
     })
 
