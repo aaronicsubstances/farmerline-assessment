@@ -1,6 +1,11 @@
 $(function () {
+    const MAX_TRANSCRIPTIONS_TO_KEEP = 100
+
     let startRecordingResult;
-    const MAX_TRANSCRIPTIONS_TO_KEEP = 50
+    let hashChangeApproved;
+    let enableRecordReplay;
+    let discardEmptyTranscription;
+    let discardFailedTranscription;
 
     function grabMicrophoneAsync() {
         if (!navigator.mediaDevices?.getUserMedia) {
@@ -52,25 +57,34 @@ $(function () {
 
                 return {
                     audioMotion,
+                    micStream,
                     liveVoiceRecorder,
                 };
             });
     }
 
     function stopRecording() {
-        if (!startRecordingResult) {
-            return;
+        try {
+            if (!startRecordingResult) {
+                return;
+            }
+
+            const {
+                audioMotion,
+                micStream,
+                liveVoiceRecorder,
+            } = startRecordingResult;
+
+            liveVoiceRecorder.stop();
+            audioMotion.destroy();
+            micStream.getTracks().forEach((track) => track.stop());
+
+            startRecordingResult = null;
         }
-
-        const {
-            audioMotion,
-            liveVoiceRecorder,
-        } = startRecordingResult;
-
-        liveVoiceRecorder.stop();
-        audioMotion.destroy();
-
-        startRecordingResult = null;
+        catch (err) {
+            appDebugLog(err)
+            showFlashMessageToUser(`Could not stop microphone recording: ${err.message}`)
+        }
     }
 
     // Render recorded audio
@@ -81,7 +95,8 @@ $(function () {
 
         // cater for existence of Transcriptions title
         // and place holder elements
-        $("#transcriptions .empty").remove()
+
+        $(".empty", container).text("")
 
         const existingTranscriptLength = $(".transcript").length;
 
@@ -93,11 +108,11 @@ $(function () {
         let wrapper = document.createElement("div")
         wrapper.className = "transcript"
 
-        if (!existingTranscriptLength) {
+        if (existingTranscriptLength < 2) {
             container.appendChild(wrapper)
         }
         else {
-            container.insertBefore(wrapper, container.children[1])
+            container.insertBefore(wrapper, container.children[2])
         }
         container = wrapper
 
@@ -107,26 +122,27 @@ $(function () {
         timestampElement.className = "date"
         timestampElement.textContent = getFormattedTimestamp(timestamp);
 
-        const transcriptionElement = container.appendChild(document.createElement("p"))
+        const transcriptionElement = container.appendChild(document.createElement("div"))
         transcriptionElement.className = "text"
-        transcriptionElement.textContent = "Waiting...";
 
-        const recordingElement = container.appendChild(document.createElement("div"))
-        recordingElement.className = "recording"
+        if (enableRecordReplay) {
+            const recordingElement = container.appendChild(document.createElement("div"))
+            recordingElement.className = "recording"
 
-        const audioEl = recordingElement.appendChild(document.createElement("audio"));
-        audioEl.src = recordedUrl;
-        audioEl.controls = true;
+            const audioEl = recordingElement.appendChild(document.createElement("audio"));
+            audioEl.src = recordedUrl;
+            audioEl.controls = true;
 
-        // Download link
-        const link = recordingElement.appendChild(document.createElement('a'))
-        Object.assign(link, {
-            href: recordedUrl,
-            download: `recording-${timestamp.getTime()}` + blob.type.split(';')[0].split('/')[1] || 'webm',
-            textContent: 'Download recording',
-        })
+            // Download link
+            const link = recordingElement.appendChild(document.createElement('a'))
+            Object.assign(link, {
+                href: recordedUrl,
+                download: `recording-${timestamp.getTime()}` + blob.type.split(';')[0].split('/')[1] || 'webm',
+                textContent: 'Download recording',
+            })
+        }
 
-        return transcriptionElement;
+        return container;
     }
 
     function getFormattedTimestamp(date) {
@@ -156,20 +172,47 @@ $(function () {
 
     function audioBlobReceiver(blob, forceSpeechChange) {
         if (blob) {
-            const transriptionOutputEl = showRecordingToUser(blob)
+            const transriptionOutputEl = $(showRecordingToUser(blob))
+            $(".date", transriptionOutputEl).addClass("d-none")
+            $('.text', transriptionOutputEl).html(`<div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+                </div>`)
+            transriptionOutputEl.addClass("text-center")
             transcribeAudioBlob(blob).then(text => {
                 if (text.trim()) {
-                    $(transriptionOutputEl).text(text)
+                    $(".text", transriptionOutputEl).text(text)
                 }
                 else {
-                    $(transriptionOutputEl).text("..............")
+                    showFlashMessageToUser('Transcription service returned empty data')
+                    if (discardEmptyTranscription) {
+                        transriptionOutputEl.remove()
+                        if (!$(".transcript").length) {
+                            insertEmptyTranscriptPlaceholder();
+                        }
+                    }
+                    else {
+                        $(".text", transriptionOutputEl).addClass("empty").text("(empty)")
+                    }
                 }
+            }).finally(() => {
+                transriptionOutputEl.removeClass("text-center")
+                $(".date", transriptionOutputEl).removeClass("d-none")
             }).catch(err => {
-                console.log(err)
+                appDebugLog(err)
 
-                $(transriptionOutputEl).addClass("error").text(err.message)
+                showFlashMessageToUser("Transcription error: " + err.message)
+                if (discardFailedTranscription) {
+                    transriptionOutputEl.remove()
+                    if (!$(".transcript").length) {
+                        insertEmptyTranscriptPlaceholder();
+                    }
+                }
+                else {
+                    $(".text", transriptionOutputEl).addClass("error").text(err.message)
+                }
             })
         }
+
         if (!blob || forceSpeechChange) {
             startRecordingResult.audioMotion.stop();
         }
@@ -191,12 +234,12 @@ $(function () {
                 startRecordingResult.liveVoiceRecorder.restart()
                 startRecordingResult.audioMotion.start();
                 if (!transcriptionTriggered) {
-                    $('#resumeState').text('Transcription skipped due to detection of silence')
+                    showFlashMessageToUser('Transcription skipped due to detection of silence')
                 }
             }
             catch (err) {
-                console.log(err)
-                alert(`Could not resume microphone recording: ${err.message}`)
+                appDebugLog(err)
+                showFlashMessageToUser(`Could not resume microphone recording: ${err.message}`)
             }
         }
     }
@@ -245,22 +288,81 @@ $(function () {
                 }
                 throw new Error("Error response from server: " +
                     response.error.message);
-             });
+            });
     }
+
+    function escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function showFlashMessageToUser(msg) {
+        const newFlashMsg = $(`<div class="toast align-items-center" role="alert" aria-live="assertive" aria-atomic="true">
+          <div class="d-flex">
+            <div class="toast-body">
+              ${escapeHtml(msg)}
+            </div>
+            <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+        </div>`)
+        newFlashMsg.prependTo("#flash-messages");
+        new bootstrap.Toast(newFlashMsg).show()
+    }
+
+    function insertEmptyTranscriptPlaceholder() {
+        $("#transcriptions .empty").text('Transcripts of microphone recordings will appear here.')
+    }
+
+    function appDebugLog() {
+        try {
+            console.log.apply(null, arguments)
+        }
+        catch (ignore) {}
+    }
+
+    // ensure start page has no hash by reloading
+    if (location.hash) {
+        window.location = location.pathname;
+    }
+
+    window.onhashchange = (event) => {
+        if (!location.hash) {
+            stopRecording();
+            $("#no-recording").removeClass("d-none")
+            $("#recording-in-progress").addClass("d-none")
+        }
+        else if (!hashChangeApproved) {
+            // reload to cancel unwanted forward history navigation
+            window.location = location.pathname;
+        }
+        hashChangeApproved = false;
+    };
 
     $("#start").click(function () {
         $("#start").attr('disabled', 'disabled');
         $('.transcript').remove()
+        $("#flash-messages").text('')
+
+        enableRecordReplay = $("#enable-record-replay").is(":checked")
+        discardEmptyTranscription = $("#discard-empty-transcription").is(":checked")
+        discardFailedTranscription = $("#discard-failed-transcription").is(":checked")
+
         startRecordingAsync($('#spectrum')[0], audioBlobReceiver)
             .then(res => {
                 startRecordingResult = res
                 $("#recording-in-progress").removeClass("d-none")
                 $("#no-recording").addClass("d-none")
-                $("#transcriptions").append($("<p class='empty'>Transcripts of microphone recordings will appear here.</p>"))
+                insertEmptyTranscriptPlaceholder()
+                hashChangeApproved = true
+                window.location.href = location.pathname + "#1";
             })
             .catch(err => {
-                console.log(err)
-                alert(`Could not start microphone recording: ${err.message}`);
+                appDebugLog(err)
+                showFlashMessageToUser(`Could not start microphone recording: ${err.message}`);
             })
             .finally(() => {
                 $("#start").removeAttr('disabled');
@@ -268,14 +370,6 @@ $(function () {
     })
 
     $("#stop").click(function () {
-        try {
-            stopRecording()
-            $("#no-recording").removeClass("d-none")
-            $("#recording-in-progress").addClass("d-none")
-        }
-        catch (err) {
-            console.log(err)
-            alert(`Could not stop microphone recording: ${err.message}`)
-        }
+        stopRecording();
     })
 });

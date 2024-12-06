@@ -27,7 +27,7 @@ body {
 
 /* Medium devices (tablets, 768px and up) */
 @media (min-width: 768px) {
-  #no-recording {
+  #no-recording h1 {
     margin-top: -10rem;
   }
 }
@@ -134,6 +134,11 @@ body {
 
 .transcript .text {
   font-size: 0.875rem;
+  margin-bottom: 1em;
+}
+
+.transcript .text.empty {
+  font-style: italic;
 }
 
 .transcript .recording {
