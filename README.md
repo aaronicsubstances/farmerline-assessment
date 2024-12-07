@@ -19,4 +19,8 @@ For the backend folder which hosts the server,
     create an empty file called database.sqlite in the database folder, and set its absolute path to the DB_DATABASE environment variable.
 
     - SERVER_PORT - this is actually optional since a default port of 8000 will be used; however if the default port is inconvenient to use, then set this SERVER_PORT in .env to something else, like 8001
-3. Running the application locally requires running `composer install` for the first time, and then `php artisan serve` to run at http://localhost:8000 or http://localhost:8001
+3. Running the application locally requires running these first time steps:
+    - `composer install`
+    - `php artisan key:generate` which sets the APP_KEY variable in .env with a value.
+    - `php artisan migrate` to generate database tables.
+4. Use `php artisan serve` to run at http://localhost:8000 or http://localhost:8001
