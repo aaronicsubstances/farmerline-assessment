@@ -24,3 +24,15 @@ For the backend folder which hosts the server,
     - `php artisan key:generate` which sets the APP_KEY variable in .env with a value.
     - `php artisan migrate` to generate database tables.
 4. Use `php artisan serve` to run at http://localhost:8000 or http://localhost:8001
+
+NB:
+
+1. From https://stackoverflow.com/questions/31263637/how-to-convert-laravel-migrations-to-raw-sql-scripts, one can use this command to generate SQL scripts for all migrations:
+
+`php artisan tinker --no-ansi --execute 'echo implode(PHP_EOL, array_reduce(glob("database/migrations/*.php"), fn($c, $i) => [...$c, ...array_column(app("db")->pretend(fn() => (include $i)->up()), "query")], []))'`
+
+2. For only pending migrations however, artisan command has a solution:
+
+`php artisan migrate --pretend`
+
+3. Differences between .env.production and .env config files aside differences in database and other resource connections, are: APP_ENV=production and APP_DEBUG=false
