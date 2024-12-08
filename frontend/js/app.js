@@ -60,9 +60,6 @@ $(function () {
     }
 
     function startRecordingAsync(waveAnimationCanvasParent, chunkListener) {
-        if (!window.API_BASE_URL) {
-            return Promise.reject(new Error("Server endpoint is missing"));
-        }
         return generateConversationId()
             .then(res => {
                 conversationId = res
@@ -192,7 +189,7 @@ $(function () {
         const monthNames = ["January", "February", "March", "April", "May", "June",
             "July", "August", "September", "October", "November", "December"
         ];
-        const formattedDate = `${monthNames[date.getMonth()].substring(0, 3)} ${date.getDay()}, ${date.getFullYear()}`;
+        const formattedDate = `${monthNames[date.getMonth()].substring(0, 3)} ${date.getDate()}, ${date.getFullYear()}`;
         let am = "am"
         let hour = date.getHours()
         if (hour >= 12) {
