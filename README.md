@@ -5,7 +5,7 @@
 For the frontend folder which supplies the web pages,
 1. It was developed using Bootstrap 5, jQuery 3 and a certain audio spectrum visualization library called audioMotion-analyzer, located at https://github.com/hvianna/audioMotion-analyzer (can see https://audiomotion.app/ for their demo application).
 2. Running the client-side of the application requires the following variables to be set in an env.js file inside the js folder, after generating a copy of it from the env.example.js file
-    - API_BASE_URL - the base url (without a path or an ending slash) of the server application which will transcribe the audio recording generated on the client.
+    - API_BASE_URL - the base url (without a path or an ending slash) of the server application which will transcribe the audio recording generated on the client. In production, an empty file can be created if the client and server are hosted at the same base url.
 3. Due to security reasons (specifically microphone access and CORS), even without Javasript build tools involved one still has to run the client-side of the application from a webserver.
 E.g. if Python software is installed, one can run `python -m http.server`, `python3 -m http.server` or `python -m http.server 8001`, and then can visit http://localhost:8000 (the default) or http://localhost:8001 to see the application.
 

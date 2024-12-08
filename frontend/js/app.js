@@ -12,7 +12,7 @@ $(function () {
     function transcribeAudioBlob(blob) {
         return blobToBase64Async(blob, true)
             .then(base64data => {
-                return fetch(`${window.API_BASE_URL}/api/speechToText`, {
+                return fetch(`${window.API_BASE_URL || ''}/api/speechToText`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -36,7 +36,7 @@ $(function () {
     }
 
     function generateConversationId() {
-        return fetch(`${window.API_BASE_URL}/api/generateUuid`, {
+        return fetch(`${window.API_BASE_URL || ''}/api/generateUuid`, {
             method: "POST"
         })
         .then(response => response.json())
