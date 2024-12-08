@@ -42,32 +42,32 @@ php -r "unlink('composer-setup.php');"
 sudo mv composer.phar /usr/local/bin/composer
 echo
 
-echo "Installing Nginx..."
-sudo apt-get install -y php-fpm nginx
+echo "Installing Apache server..."
+sudo apt-get install -y apache2 libapache2-mod-php8.3
 if [ -n "$FIREWALL_OPENING_REQD" ]; then
-    sudo ufw allow 'Nginx HTTP'
+    sudo ufw allow 'Apache'
 fi
 
-sudo rm -rf /srv/$SERVER_DOMAIN
-sudo mkdir -p /srv/$SERVER_DOMAIN
-sudo chown -R $USER:$USER /srv/$SERVER_DOMAIN
-chmod -R 755 /srv/$SERVER_DOMAIN
+sudo rm -rf /var/www/$SERVER_DOMAIN
+sudo mkdir -p /var/www/$SERVER_DOMAIN
+sudo chown -R $USER:$USER /var/www/$SERVER_DOMAIN
+chmod -R 755 /var/www/$SERVER_DOMAIN
 
 echo "Downloading and building applilcation..."
 rm -rf farmerline-assessment
 git clone https://github.com/aaronicsubstances/farmerline-assessment.git
-cp -r farmerline-assessment/backend/. /srv/$SERVER_DOMAIN
-cp "$DOTENV_PATH" /srv/$SERVER_DOMAIN/.env
-cp -r farmerline-assessment/frontend/. /srv/$SERVER_DOMAIN/public
-touch /srv/$SERVER_DOMAIN/public/js/env.js
-mv /srv/$SERVER_DOMAIN/public/index.html /srv/$SERVER_DOMAIN/public/start.html
+cp -r farmerline-assessment/backend/. /var/www/$SERVER_DOMAIN
+cp "$DOTENV_PATH" /var/www/$SERVER_DOMAIN/.env
+cp -r farmerline-assessment/frontend/. /var/www/$SERVER_DOMAIN/public
+touch /var/www/$SERVER_DOMAIN/public/js/env.js
+mv /var/www/$SERVER_DOMAIN/public/index.html /var/www/$SERVER_DOMAIN/public/start.html
 
 # give www-data user and group write access to bootstrap/cache
 # and storage folders
-chmod -R 777 /srv/$SERVER_DOMAIN/bootstrap/cache
-chmod -R 777 /srv/$SERVER_DOMAIN/storage
+chmod -R 777 /var/www/$SERVER_DOMAIN/bootstrap/cache
+chmod -R 777 /var/www/$SERVER_DOMAIN/storage
 
-cd /srv/$SERVER_DOMAIN
+cd /var/www/$SERVER_DOMAIN
 composer install --no-plugins --no-scripts
 composer dump-autoload -o
 php artisan key:generate
@@ -79,47 +79,27 @@ php artisan optimize:clear
 echo
 
 echo "Deploying app to nginx..."
-NGINX_CONFIG=$(
+APACHE_CONFIG=$(
 cat << 'END_HEREDOC'
-server {
-    listen 80;
-    listen [::]:80;
-    server_name example.com;
-    root /srv/example.com/public;
- 
-    add_header X-Frame-Options "SAMEORIGIN";
-    add_header X-Content-Type-Options "nosniff";
- 
-    index index.php;
- 
-    charset utf-8;
- 
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
- 
-    location = /favicon.ico { access_log off; log_not_found off; }
-    location = /robots.txt  { access_log off; log_not_found off; }
- 
-    error_page 404 /index.php;
- 
-    location ~ ^/index\.php(/|$) {
-        fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
-        include fastcgi_params;
-        fastcgi_hide_header X-Powered-By;
-    }
- 
-    location ~ /\.(?!well-known).* {
-        deny all;
-    }
-}
+<VirtualHost *:80>
+    ServerName your_domain
+    ServerAlias www.your_domain
+    ServerAdmin webmaster@localhost
+    DocumentRoot /srv/your_domain/public
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+    <Directory "/srv/your_domain/public">
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
 END_HEREDOC
 )
-NGINX_CONFIG="${NGINX_CONFIG//example.com/$SERVER_DOMAIN}"
+APACHE_CONFIG="${APACHE_CONFIG//your_domain/$SERVER_DOMAIN}"
 
-echo "$NGINX_CONFIG" | sudo tee /etc/nginx/sites-available/$SERVER_DOMAIN
-
-sudo ln -sf /etc/nginx/sites-available/$SERVER_DOMAIN /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl restart nginx
+echo "$APACHE_CONFIG" | sudo tee /etc/apache2/sites-available/$SERVER_DOMAIN.conf
+sudo a2ensite "$SERVER_DOMAIN"
+sudo a2enmod rewrite
+sudo apache2ctl configtest
+sudo systemctl reload apache2
