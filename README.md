@@ -36,3 +36,21 @@ NB:
 `php artisan migrate --pretend`
 
 3. Differences between .env.production and .env config files aside differences in database and other resource connections, are: APP_ENV=production and APP_DEBUG=false
+
+4. Commands for creating a new SQL database and an associated new SQL user (note that %USER%, %PASSWORD% and %DATABASE% are placeholders):
+
+`CREATE USER '%USER%'@'localhost' IDENTIFIED BY '%PASSWORD%';`
+
+`CREATE DATABASE %DATABASE%;`
+
+```sh
+GRANT SHOW DATABASES 
+ON *.* 
+TO '%USER%'@'localhost' ;```
+
+```sh
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, INDEX, ALTER, 
+ CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, 
+ CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER 
+ON %DATABASE%.* 
+TO '%USER%'@'localhost' ;```

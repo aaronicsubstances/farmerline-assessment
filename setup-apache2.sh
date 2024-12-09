@@ -6,6 +6,7 @@ set -e
 # allow successful git clone
 
 export SERVER_DOMAIN=
+export SET_SERVER_DOMAIN=1
 export DOTENV_PATH=".env.production"
 export RUN_MIGRATIONS=1
 export FIREWALL_OPENING_REQD=
@@ -28,7 +29,7 @@ echo "Installing Git and other prerequisites..."
 sudo apt-get -y install git
 echo
 
-sudo apt-get -y  install curl
+sudo apt-get -y  install curl unzip # needed by composer
 
 echo "Installing PHP with MySQL and Laravel support..."
 sudo apt-get -y  install php8.3 php8.3-cli php8.3-mysql php8.3-common php8.3-zip php8.3-mbstring php8.3-curl php8.3-xml
@@ -76,18 +77,18 @@ php artisan optimize
 php artisan optimize:clear
 echo
 
-echo "Deploying app to nginx..."
+echo "Deploying app to apache2..."
 APACHE_CONFIG=$(
 cat << 'END_HEREDOC'
 <VirtualHost *:80>
     ServerName your_domain
     ServerAlias www.your_domain
     ServerAdmin webmaster@localhost
-    DocumentRoot /srv/your_domain/public
+    DocumentRoot /var/www/your_domain/public
     ErrorLog ${APACHE_LOG_DIR}/error.log
     CustomLog ${APACHE_LOG_DIR}/access.log combined
 
-    <Directory "/srv/your_domain/public">
+    <Directory "/var/www/your_domain/public">
         AllowOverride All
         Require all granted
     </Directory>
@@ -97,7 +98,14 @@ END_HEREDOC
 APACHE_CONFIG="${APACHE_CONFIG//your_domain/$SERVER_DOMAIN}"
 
 echo "$APACHE_CONFIG" | sudo tee /etc/apache2/sites-available/$SERVER_DOMAIN.conf
+
+if [ -n "$SET_SERVER_DOMAIN" ]; then
+    echo "ServerName $SERVER_DOMAIN" | sudo tee /etc/apache2/conf-available/servername.conf
+    sudo a2enconf servername
+fi
+
 sudo a2ensite "$SERVER_DOMAIN"
+sudo a2dissite 000-default
 sudo a2enmod rewrite
 sudo apache2ctl configtest
 sudo systemctl reload apache2

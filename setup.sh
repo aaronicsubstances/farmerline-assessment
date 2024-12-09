@@ -43,6 +43,7 @@ sudo mv composer.phar /usr/local/bin/composer
 echo
 
 echo "Installing Nginx..."
+sudo apt-get purge -y php-fpm nginx # just in case an inactive nginx exists to cause reload to fail
 sudo apt-get install -y php-fpm nginx
 if [ -n "$FIREWALL_OPENING_REQD" ]; then
     sudo ufw allow 'Nginx HTTP'
