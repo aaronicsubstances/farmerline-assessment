@@ -5,7 +5,7 @@ set -e
 # or in any directory with permissions which will 
 # allow successful git clone
 
-export SERVER_DOMAIN=farmerlinetranscription.local
+export SERVER_DOMAIN=
 export DOTENV_PATH=".env.production"
 export RUN_MIGRATIONS=1
 export FIREWALL_OPENING_REQD=
@@ -17,7 +17,7 @@ if [ "$SERVER_DOMAIN" = "" ]; then
 fi
 
 if [ ! -f "$DOTENV_PATH" ]; then
-    echo ".env file not found"
+    echo ".env.production file not found"
     exit 1
 fi
 
@@ -51,7 +51,7 @@ fi
 sudo rm -rf /var/www/$SERVER_DOMAIN
 sudo mkdir -p /var/www/$SERVER_DOMAIN
 sudo chown -R $USER:$USER /var/www/$SERVER_DOMAIN
-chmod -R 755 /var/www/$SERVER_DOMAIN
+chmod -R 775 /var/www/$SERVER_DOMAIN
 
 echo "Downloading and building applilcation..."
 rm -rf farmerline-assessment
@@ -59,8 +59,7 @@ git clone https://github.com/aaronicsubstances/farmerline-assessment.git
 cp -r farmerline-assessment/backend/. /var/www/$SERVER_DOMAIN
 cp "$DOTENV_PATH" /var/www/$SERVER_DOMAIN/.env
 cp -r farmerline-assessment/frontend/. /var/www/$SERVER_DOMAIN/public
-touch /var/www/$SERVER_DOMAIN/public/js/env.js
-mv /var/www/$SERVER_DOMAIN/public/index.html /var/www/$SERVER_DOMAIN/public/start.html
+echo "window.API_BASE_URL = '';" > /var/www/$SERVER_DOMAIN/public/js/env.js
 
 # give www-data user and group write access to bootstrap/cache
 # and storage folders
@@ -68,8 +67,7 @@ chmod -R 777 /var/www/$SERVER_DOMAIN/bootstrap/cache
 chmod -R 777 /var/www/$SERVER_DOMAIN/storage
 
 cd /var/www/$SERVER_DOMAIN
-composer install --no-plugins --no-scripts
-composer dump-autoload -o
+composer install --no-plugins --no-scripts --optimize-autoloader --no-dev
 php artisan key:generate
 if [ -n "$RUN_MIGRATIONS" ]; then
     php artisan migrate --force

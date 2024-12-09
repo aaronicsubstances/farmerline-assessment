@@ -5,7 +5,7 @@ set -e
 # or in any directory with permissions which will 
 # allow successful git clone
 
-export SERVER_DOMAIN=farmerlinetranscription.local
+export SERVER_DOMAIN=
 export DOTENV_PATH=".env.production"
 export RUN_MIGRATIONS=1
 export FIREWALL_OPENING_REQD=
@@ -17,7 +17,7 @@ if [ "$SERVER_DOMAIN" = "" ]; then
 fi
 
 if [ ! -f "$DOTENV_PATH" ]; then
-    echo ".env file not found"
+    echo ".env.production file not found"
     exit 1
 fi
 
@@ -51,7 +51,7 @@ fi
 sudo rm -rf /srv/$SERVER_DOMAIN
 sudo mkdir -p /srv/$SERVER_DOMAIN
 sudo chown -R $USER:$USER /srv/$SERVER_DOMAIN
-chmod -R 755 /srv/$SERVER_DOMAIN
+chmod -R 775 /srv/$SERVER_DOMAIN
 
 echo "Downloading and building applilcation..."
 rm -rf farmerline-assessment
@@ -59,8 +59,7 @@ git clone https://github.com/aaronicsubstances/farmerline-assessment.git
 cp -r farmerline-assessment/backend/. /srv/$SERVER_DOMAIN
 cp "$DOTENV_PATH" /srv/$SERVER_DOMAIN/.env
 cp -r farmerline-assessment/frontend/. /srv/$SERVER_DOMAIN/public
-touch /srv/$SERVER_DOMAIN/public/js/env.js
-mv /srv/$SERVER_DOMAIN/public/index.html /srv/$SERVER_DOMAIN/public/start.html
+echo "window.API_BASE_URL = '';" > /srv/$SERVER_DOMAIN/public/js/env.js
 
 # give www-data user and group write access to bootstrap/cache
 # and storage folders
@@ -68,8 +67,7 @@ chmod -R 777 /srv/$SERVER_DOMAIN/bootstrap/cache
 chmod -R 777 /srv/$SERVER_DOMAIN/storage
 
 cd /srv/$SERVER_DOMAIN
-composer install --no-plugins --no-scripts
-composer dump-autoload -o
+composer install --no-plugins --no-scripts --optimize-autoloader --no-dev
 php artisan key:generate
 if [ -n "$RUN_MIGRATIONS" ]; then
     php artisan migrate --force
@@ -118,8 +116,7 @@ END_HEREDOC
 )
 NGINX_CONFIG="${NGINX_CONFIG//example.com/$SERVER_DOMAIN}"
 
-echo "$NGINX_CONFIG" | sudo tee /etc/nginx/sites-available/$SERVER_DOMAIN
+echo "$NGINX_CONFIG" | sudo tee /etc/nginx/sites-available/default
 
-sudo ln -sf /etc/nginx/sites-available/$SERVER_DOMAIN /etc/nginx/sites-enabled/
 sudo nginx -t
-sudo systemctl restart nginx
+sudo nginx -s reload

@@ -60,6 +60,9 @@ $(function () {
     }
 
     function startRecordingAsync(waveAnimationCanvasParent, chunkListener) {
+        if (window.API_BASE_URL === undefined) {
+            return Promise.reject(new Error("Missing server endpoint"));
+        }
         return generateConversationId()
             .then(res => {
                 conversationId = res
