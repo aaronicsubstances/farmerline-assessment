@@ -46,11 +46,23 @@ NB:
 ```sh
 GRANT SHOW DATABASES 
 ON *.* 
-TO '%USER%'@'localhost' ;```
+TO '%USER%'@'localhost' ;
+```
 
 ```sh
 GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, INDEX, ALTER, 
  CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, 
  CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER 
 ON %DATABASE%.* 
-TO '%USER%'@'localhost' ;```
+TO '%USER%'@'localhost' ;
+```
+
+## Helpful Online Resources
+
+- https://www.digitalocean.com/community/tutorials/how-to-install-lamp-stack-on-ubuntu
+
+- https://www.digitalocean.com/community/tutorials/how-to-install-and-secure-phpmyadmin-on-ubuntu-20-04
+
+- https://www.digitalocean.com/community/tutorials/how-to-secure-apache-with-let-s-encrypt-on-ubuntu
+
+- https://www.digitalocean.com/community/tutorials/how-to-create-a-new-user-and-grant-permissions-in-mysql
